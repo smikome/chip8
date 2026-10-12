@@ -3,12 +3,13 @@
 #include <cstdint>
 
 #include "MiniFB.h"
+#include "chip8/chip8.h"
 
-#define WIDTH 64
-#define HEIGHT 32
-#define PIXEL_SIZE 16
-#define WINDOW_WIDTH (WIDTH * PIXEL_SIZE)
-#define WINDOW_HEIGHT (HEIGHT * PIXEL_SIZE)
+static constexpr uint32_t WIDTH = 64;
+static constexpr uint32_t HEIGHT = 32;
+static constexpr uint32_t PIXEL_SIZE = 16;
+static constexpr uint32_t WINDOW_WIDTH = (WIDTH * PIXEL_SIZE);
+static constexpr uint32_t WINDOW_HEIGHT = (HEIGHT * PIXEL_SIZE);
 
 int main() {
   fmt::print("Hello, vcpkg + CMakea!\n");
@@ -18,8 +19,14 @@ int main() {
   {
     return 0;
   }
+  // 60Hz
+  mfb_set_target_fps(60);
   uint32_t *buffer = (uint32_t*)malloc(WINDOW_WIDTH * WINDOW_HEIGHT * 4);
 
+  auto chip8 = Chip8();
+  chip8.Load("roms/PONG");
+
+#if 0
   // test
   for (int y = 0; y < WINDOW_HEIGHT; ++y)
   {
@@ -31,6 +38,7 @@ int main() {
       buffer[y * WINDOW_WIDTH + x] = pink ? 0xF0A0A0 : 0xFFFFFF;
     }
   }
+#endif
 
   mfb_update_state state;
   do {
