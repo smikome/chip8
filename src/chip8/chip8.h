@@ -62,9 +62,15 @@ private:
   void ExecuteOpE(const uint16_t& opcode);
   void ExecuteOpF(const uint16_t& opcode);
 
+  void HandleUnknownOpcode(const uint16_t& opcode);
+
 private:
   Chip8State state;
 
   using OpFunc = void (Chip8::*)(const uint16_t&);
   std::array<OpFunc, 0xF> opFuncTable;
+
+  bool updateDraw = false;
+  // 64 * 32のディスプレイ描画フラグ, drawFlag[y + x * 64]で取得
+  std::array<uint8_t, 2048> drawFlag;
 };
