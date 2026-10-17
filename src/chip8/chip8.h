@@ -3,6 +3,7 @@
 #include <array>
 #include <cstdint>
 #include <chrono>
+#include <random>
 
 static constexpr std::size_t MEMORY_NUM = 4096;
 static constexpr std::size_t PC_INITIAL_VALUE = 0x0200; // PCの初期値
@@ -18,6 +19,7 @@ public:
 
   void FetchCode(uint16_t& opcode);
   void IncrementPC();
+  void DecrementPC();
   void UpdateTimer();
 
   std::array<uint8_t, MEMORY_NUM> memory;
@@ -73,4 +75,7 @@ private:
   bool updateDraw = false;
   // 64 * 32のディスプレイ描画フラグ, drawFlag[y + x * 64]で取得
   std::array<uint8_t, 2048> drawFlag;
+  std::array<uint8_t, 16> key;
+
+  std::mt19937 randEngine;
 };

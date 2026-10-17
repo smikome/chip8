@@ -6,6 +6,7 @@
 #include <fstream>
 #include <iostream>
 #include <fmt/core.h>
+#include <random>
 
 namespace
 {
@@ -55,6 +56,11 @@ namespace
 
     return buffer;
   }
+
+  int GetRandom(int minValue, int maxValue)
+  {
+
+  }
 }
 
 Chip8State::Chip8State()
@@ -98,6 +104,11 @@ void Chip8State::IncrementPC()
   reg_pc += 2;
 }
 
+void Chip8State::DecrementPC()
+{
+  reg_pc -= 2;
+}
+
 void Chip8State::UpdateTimer()
 {
   auto now = std::chrono::steady_clock::now();
@@ -137,6 +148,9 @@ Chip8::Chip8()
   opFuncTable[0xD] = &Chip8::ExecuteOpD;
   opFuncTable[0xE] = &Chip8::ExecuteOpE;
   opFuncTable[0xF] = &Chip8::ExecuteOpF;
+
+  std::random_device seed_gen;
+  randEngine = std::mt19937(seed_gen());
 }
 
 Chip8::~Chip8()
@@ -369,30 +383,196 @@ void Chip8::ExecuteOp8(const uint16_t& opcode)
 
 void Chip8::ExecuteOp9(const uint16_t& opcode)
 {
+  // 9xy0 - SNE Vx, Vy
+  // Vx != Vyの場合、次の命令をスキップする。
+  // つまり、プログラムカウンタを2インクリメントする。
+  auto x = opcode & 0x0F00 >> 8;
+  auto y = opcode & 0x00F0 >> 4;
+  if (state.reg_v[x] != state.reg_v[y])
+  {
+    state.IncrementPC();
+  }
 }
 
 void Chip8::ExecuteOpA(const uint16_t& opcode)
 {
+  // Annn - LD I, addr
+  // Iにnnnをセットする。
+  auto nnn = opcode & 0x0FFF;
+  state.reg_i = nnn;
 }
 
 void Chip8::ExecuteOpB(const uint16_t& opcode)
 {
+  // Bnnn - JP V0, addr
+  // nnn + V0のアドレスにジャンプする。つまり、プログラムカウンタにnnn + V0をセットする。
+  auto nnn = opcode & 0x0FFF;
+  state.reg_pc = nnn + state.reg_v[0x0];
 }
 
 void Chip8::ExecuteOpC(const uint16_t& opcode)
 {
+  // Cxkk - RND Vx, byte
+  // Vxに0~255の乱数 AND kkをセットする。AND演算については8xy2を参照。
+  auto x = opcode & 0x0F00 >> 8;
+  auto kk = opcode & 0x00FF;
+  std::uniform_int_distribution<int> distribution(0x0, 0xFF);
+  auto rand = distribution(randEngine);
+  state.reg_v[x] = rand & kk;
 }
 
 void Chip8::ExecuteOpD(const uint16_t& opcode)
 {
+  // Dxyn - DRW Vx, Vy, nibble
+  // アドレスIのnバイトのスプライトを(Vx, Vy)に描画する。
+  // Vfにはcollision(後述)をセットする。
+  // アドレスIのnバイトのスプライトを読み出し、スプライトとして(Vx, Vy)に描画する。
+  // スプライトは画面にXORする。
+  // このとき、消されたピクセルが一つでもある場合はVfに1、それ以外の場合は0をセットする。
+  // スプライトの一部が画面からはみ出る場合は、逆方向に折り返す。
+  // XORについては8xy3に詳しい。
+  // また、ディプレイの仕様に関しては2.4 Displayを参照のこと。
+  auto x = opcode & 0x0F00 >> 8;
+  auto y = opcode & 0x00F0 >> 4;
+  auto n = opcode & 0x000F;
+  bool collision = false;
+  for (int offsetY = 0; offsetY < n; ++offsetY)
+  {
+    auto spriteByte = state.memory[state.reg_i + offsetY];
+    for (int offsetX = 0; offsetX < 8; ++offsetX)
+    {
+      bool shouldDraw = (spriteByte << offsetX) & 0x80;
+      if (shouldDraw)
+      {
+        // TODO: マジックナンバーを定数に
+        auto drawX = (x + offsetX) % 64;
+        auto drawY = (y + offsetY) % 32;
+        auto drawIndex = drawY + drawX * 64;
+        collision = collision || drawFlag[drawIndex]; // すでに描画されている
+        drawFlag[drawY + drawX * 64] ^= 1; // XOR
+        updateDraw = true;
+      }
+    }
+  }
+  state.reg_v[0xF] = collision ? 1 : 0;
 }
 
 void Chip8::ExecuteOpE(const uint16_t& opcode)
 {
+  auto lastByte = opcode & 0x00FF;
+  auto x = (opcode & 0x0F00) >> 8;
+  switch (lastByte)
+  {
+    case 0x009E:
+      // Ex9E - SKP Vx
+      // Vxが押された場合、次の命令をスキップする。
+      // キーボードををチェックし、Vxの値のキーが押されていればプログラムカウンタを2インクリメントする。
+      if (key[state.reg_v[x]])
+      {
+        state.IncrementPC();
+      }
+      break;
+    case 0x00A1:
+      // ExA1 - SKNP Vx
+      // Vxが押されてない場合、次の命令をスキップする。
+      // キーボードををチェックし、Vxの値のキーが押されていなければプログラムカウンタを2インクリメントする。
+      if (!key[state.reg_v[x]])
+      {
+        state.IncrementPC();
+      }
+      break;
+    default:
+      HandleUnknownOpcode(opcode);
+      break;
+  }
 }
 
 void Chip8::ExecuteOpF(const uint16_t& opcode)
 {
+  auto lastByte = opcode & 0x00FF;
+  auto x = (opcode & 0x0F00) >> 8;
+  switch (lastByte)
+  {
+    case 0x0007:
+      // Fx07 - LD Vx, DT
+      // VxにDelay timerの値dtをセットする。
+      state.delay_timer = state.reg_v[x];
+      break;
+    case 0x000A:
+      // Fx0A - LD Vx, K
+      // 押されたキーをVxにセットする。
+      // キーが入力されるまで全ての実行をストップする。
+      // キーが押されるとその値をVxにセットする。
+      bool pressedAnyKey = false;
+      for (auto i = 0; i < key.size(); ++i)
+      {
+        if (key[i])
+        {
+          // MEMO: これで合ってる？
+          pressedAnyKey = true;
+          state.reg_v[x] = i;
+          break;
+        }
+      }
+      if (!pressedAnyKey)
+      {
+        // PCの位置をもとに戻す
+        state.DecrementPC();
+      }
+      break;
+    case 0x0015:
+      // Fx15 - LD DT, Vx
+      // Delay timer dtにVxをセットする。
+      state.delay_timer = state.reg_v[x];
+      break;
+    case 0x0018:
+      // Fx18 - LD ST, Vx
+      // Sound timer stにVxをセットする。
+      state.sound_timer = state.reg_v[x];
+      break;
+    case 0x001E:
+      // Fx1E - ADD I, Vx
+      // IにI + Vxをセットする。
+      state.reg_i = state.reg_i + state.reg_v[x];
+      break;
+    case 0x0029:
+      // Fx29 - LD F, Vx
+      // IにVxのスプライト(fontset)のアドレスをセットする。
+      // Iの値にVxの値に対応するスプライト(fontset)のアドレスをセットする。
+      // 詳しくはDisplayを参照。
+      // MEMO: フォントは1文字5バイト, 0~Fを文字にする。
+      // TODO: マジックナンバーを定数に
+      state.reg_i = state.reg_v[x] * 5;
+      break;
+    case 0x0033:
+      // Fx33 - LD B, Vx
+      // アドレスI, I+1、I+2にVxのBCDをセットする。
+      // アドレスIにVxの下位3桁目の値をセットする。I+1には下位2桁目の値をセットし、I+2には下位1桁目の値をセットする。
+      // MEMO: 他の人の実装見ると、おそらく10進数で考えるっぽい
+      state.memory[state.reg_i] = state.reg_v[x] / 100;
+      state.memory[state.reg_i + 1] = (state.reg_v[x] % 100) / 10;
+      state.memory[state.reg_i + 2] = (state.reg_v[x] % 10);
+      break;
+    case 0x0055:
+      // Fx55 - LD [I], Vx
+      // V0からVxまでの値をIから始まるアドレスにセットする。
+      for (auto i = 0; i <= x; ++i)
+      {
+        state.memory[state.reg_i + i] = state.reg_v[i];
+      }
+      break;
+    case 0x0065:
+      // Fx65 - LD Vx, [I]
+      // アドレスIから読んだ値をV0からVxにセットする。
+      for (auto i = 0; i <= x; ++i)
+      {
+        state.reg_v[i] = state.memory[state.reg_i + i];
+      }
+      break;
+    default:
+      HandleUnknownOpcode(opcode);
+      break;
+  }
 }
 
 void Chip8::HandleUnknownOpcode(const uint16_t& opcode)
