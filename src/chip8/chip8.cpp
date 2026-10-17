@@ -56,11 +56,6 @@ namespace
 
     return buffer;
   }
-
-  int GetRandom(int minValue, int maxValue)
-  {
-
-  }
 }
 
 Chip8State::Chip8State()
@@ -192,9 +187,20 @@ void Chip8::UpdateTimer()
   state.UpdateTimer();
 }
 
+bool Chip8::ShouldUpdateDraw(std::array<uint8_t, 2048>& outDrawFlag)
+{
+  if (updateDraw)
+  {
+    outDrawFlag = drawFlag;
+    return true;
+  }
+  return false;
+}
+
 void Chip8::ExecuteOpCode(const uint16_t& opcode)
 {
   auto nibble = (opcode & 0xF000) >> 12;
+  fmt::println("nibble: {}, opFuncTable.size(): {}", nibble, opFuncTable.size());
   assert(nibble < opFuncTable.size() && "nibble out of range");
   (this->*opFuncTable[nibble])(opcode);
 }
@@ -204,19 +210,25 @@ void Chip8::ExecuteOp0(const uint16_t& opcode)
   switch (opcode)
   {
     case 0x00E0:
+    {
       // 00E0 - CLS
       fmt::println("clear display");
       break;
+    }
     case 0x00EE:
+    {
       // 00EE - RET
       // サブルーチンから戻る。
       // プログラムカウンタにスタックの一番上のアドレスをセットし、スタックポインタから1を引く。
       state.reg_pc = state.stack[state.reg_sp];
       state.reg_sp--;
       break;
+    }
     default:
+    {
       HandleUnknownOpcode(opcode);
       break;
+    }
   }
 }
 
@@ -307,33 +319,42 @@ void Chip8::ExecuteOp8(const uint16_t& opcode)
   switch (nibble)
   {
     case 0x0000:
+    {
       // 8xy0 - LD Vx, Vy
       // VxにVyをセットする。
       // インタプリタはレジスタVxにVyの値をセットする。
       state.reg_v[x] = state.reg_v[y];
       break;
+    }
     case 0x0001:
+    {
       // 8xy1 - OR Vx, Vy
       // VxにVx OR Vyをセットする。
       // VxとVyのビット和をとり、Vxにセットする。
       // ビット和は二つの値のビットを比較し、どちらかひとつでも1の場合は1、両方とも0の場合は0とする。
       state.reg_v[x] = state.reg_v[x] | state.reg_v[y];
       break;
+    }
     case 0x0002:
+    {
       // 8xy2 - AND Vx, Vy
       // VxにVx AND Vyをセットする。
       // VxとVyのビット積をとり、Vxにセットする。
       // ビット積は二つの値のビットを比較し、両方とも1の場合は1、それ以外の場合は0とする。
       state.reg_v[x] = state.reg_v[x] & state.reg_v[y];
       break;
+    }
     case 0x0003:
+    {
       // 8xy3 - XOR Vx, Vy
       // VxにVx XOR Vyをセットする。
       // VxとVyの排他的ビット和をとり、Vxにセットする。
       // 排他的ビット和は二つの値のビットを比較し、等しくない場合は1、それ以外の場合は0とする。
       state.reg_v[x] = state.reg_v[x] ^ state.reg_v[y];
       break;
+    }
     case 0x0004:
+    {
       // 8xy4 - ADD Vx, Vy
       // VxにVx + Vyをセットする。
       // 結果が8bit(255)より大きい場合はVfに1、それ以外の場合は0をセットする。
@@ -343,7 +364,9 @@ void Chip8::ExecuteOp8(const uint16_t& opcode)
       state.reg_v[0xF] = tempAddResult > 0xFF;
       state.reg_v[x] = static_cast<uint8_t>(tempAddResult);
       break;
+    }
     case 0x0005:
+    {
       // 8xy5 - SUB Vx, Vy
       // Vx > Vyの場合はVfに1、それ以外の場合は0をセットする。
       // VxにVx - Vyをセットする。
@@ -351,7 +374,9 @@ void Chip8::ExecuteOp8(const uint16_t& opcode)
       state.reg_v[0xF] = state.reg_v[x] > state.reg_v[y];
       state.reg_v[x] = state.reg_v[x] - state.reg_v[y];
       break;
+    }
     case 0x0006:
+    {
       // 8xy6 - SHR Vx {, Vy}
       // Vxの最下位ビットが1だった場合はVfに1、それ以外の場合は0をセットする。
       // VxにVxを2で割った(または右ビットシフト)値をセットする。
@@ -359,7 +384,9 @@ void Chip8::ExecuteOp8(const uint16_t& opcode)
       state.reg_v[0xF] = state.reg_v[x] & 0x1;
       state.reg_v[x] >>= 1;
       break;
+    }
     case 0x0007:
+    {
       // 8xy7 - SUBN Vx, Vy
       // Vy > Vxの場合Vfに1、それ以外の場合は0をセットする。
       // VxにVy - Vxをセットする。
@@ -367,7 +394,9 @@ void Chip8::ExecuteOp8(const uint16_t& opcode)
       state.reg_v[0xF] = state.reg_v[y] > state.reg_v[x];
       state.reg_v[x] = state.reg_v[y] - state.reg_v[x];
       break;
+    }
     case 0x000E:
+    {
       // 8xyE - SHL Vx {, Vy}
       // Vxの最上位ビットが1の場合Vfに1、それ以外の場合は0をセットする。
       // Vxに2をかけた(または左ビットシフト)値をセットする。
@@ -375,9 +404,12 @@ void Chip8::ExecuteOp8(const uint16_t& opcode)
       state.reg_v[0xF] = state.reg_v[x] & 0x80;
       state.reg_v[x] <<= 1;
       break;
+    }
     default:
+    {
       HandleUnknownOpcode(opcode);
       break;
+    }
   }
 }
 
@@ -464,6 +496,7 @@ void Chip8::ExecuteOpE(const uint16_t& opcode)
   switch (lastByte)
   {
     case 0x009E:
+    {
       // Ex9E - SKP Vx
       // Vxが押された場合、次の命令をスキップする。
       // キーボードををチェックし、Vxの値のキーが押されていればプログラムカウンタを2インクリメントする。
@@ -472,7 +505,9 @@ void Chip8::ExecuteOpE(const uint16_t& opcode)
         state.IncrementPC();
       }
       break;
+    }
     case 0x00A1:
+    {
       // ExA1 - SKNP Vx
       // Vxが押されてない場合、次の命令をスキップする。
       // キーボードををチェックし、Vxの値のキーが押されていなければプログラムカウンタを2インクリメントする。
@@ -481,9 +516,12 @@ void Chip8::ExecuteOpE(const uint16_t& opcode)
         state.IncrementPC();
       }
       break;
+    }
     default:
+    {
       HandleUnknownOpcode(opcode);
       break;
+    }
   }
 }
 
@@ -494,11 +532,14 @@ void Chip8::ExecuteOpF(const uint16_t& opcode)
   switch (lastByte)
   {
     case 0x0007:
+    {
       // Fx07 - LD Vx, DT
       // VxにDelay timerの値dtをセットする。
       state.delay_timer = state.reg_v[x];
       break;
+    }
     case 0x000A:
+    {
       // Fx0A - LD Vx, K
       // 押されたキーをVxにセットする。
       // キーが入力されるまで全ての実行をストップする。
@@ -520,22 +561,30 @@ void Chip8::ExecuteOpF(const uint16_t& opcode)
         state.DecrementPC();
       }
       break;
+    }
     case 0x0015:
+    {
       // Fx15 - LD DT, Vx
       // Delay timer dtにVxをセットする。
       state.delay_timer = state.reg_v[x];
       break;
+    }
     case 0x0018:
+    {
       // Fx18 - LD ST, Vx
       // Sound timer stにVxをセットする。
       state.sound_timer = state.reg_v[x];
       break;
+    }
     case 0x001E:
+    {
       // Fx1E - ADD I, Vx
       // IにI + Vxをセットする。
       state.reg_i = state.reg_i + state.reg_v[x];
       break;
+    }
     case 0x0029:
+    {
       // Fx29 - LD F, Vx
       // IにVxのスプライト(fontset)のアドレスをセットする。
       // Iの値にVxの値に対応するスプライト(fontset)のアドレスをセットする。
@@ -544,7 +593,9 @@ void Chip8::ExecuteOpF(const uint16_t& opcode)
       // TODO: マジックナンバーを定数に
       state.reg_i = state.reg_v[x] * 5;
       break;
+    }
     case 0x0033:
+    {
       // Fx33 - LD B, Vx
       // アドレスI, I+1、I+2にVxのBCDをセットする。
       // アドレスIにVxの下位3桁目の値をセットする。I+1には下位2桁目の値をセットし、I+2には下位1桁目の値をセットする。
@@ -553,7 +604,9 @@ void Chip8::ExecuteOpF(const uint16_t& opcode)
       state.memory[state.reg_i + 1] = (state.reg_v[x] % 100) / 10;
       state.memory[state.reg_i + 2] = (state.reg_v[x] % 10);
       break;
+    }
     case 0x0055:
+    {
       // Fx55 - LD [I], Vx
       // V0からVxまでの値をIから始まるアドレスにセットする。
       for (auto i = 0; i <= x; ++i)
@@ -561,7 +614,9 @@ void Chip8::ExecuteOpF(const uint16_t& opcode)
         state.memory[state.reg_i + i] = state.reg_v[i];
       }
       break;
+    }
     case 0x0065:
+    {
       // Fx65 - LD Vx, [I]
       // アドレスIから読んだ値をV0からVxにセットする。
       for (auto i = 0; i <= x; ++i)
@@ -569,9 +624,12 @@ void Chip8::ExecuteOpF(const uint16_t& opcode)
         state.reg_v[i] = state.memory[state.reg_i + i];
       }
       break;
+    }
     default:
+    {
       HandleUnknownOpcode(opcode);
       break;
+    }
   }
 }
 

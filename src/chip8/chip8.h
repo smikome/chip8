@@ -43,6 +43,7 @@ public:
   bool Load(const char* filePath);
   void EmulateCycle();
   void UpdateTimer();
+  bool ShouldUpdateDraw(std::array<uint8_t, 2048>& outDrawFlag);
 
 private:
   void ExecuteOpCode(const uint16_t& opcode);
@@ -70,7 +71,7 @@ private:
   Chip8State state;
 
   using OpFunc = void (Chip8::*)(const uint16_t&);
-  std::array<OpFunc, 0xF> opFuncTable;
+  std::array<OpFunc, 0x10> opFuncTable;
 
   bool updateDraw = false;
   // 64 * 32のディスプレイ描画フラグ, drawFlag[y + x * 64]で取得

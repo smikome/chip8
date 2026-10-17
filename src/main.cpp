@@ -26,23 +26,26 @@ int main() {
   auto chip8 = Chip8();
   chip8.Load("roms/PONG");
 
-#if 0
-  // test
-  for (int y = 0; y < WINDOW_HEIGHT; ++y)
-  {
-    for (int x = 0; x < WINDOW_WIDTH; ++x)
-    {
-      auto pixelX = x / PIXEL_SIZE;
-      auto pixelY = y / PIXEL_SIZE;
-      auto pink = pixelY % 4 ==  0 || pixelX % 4 == 0;
-      buffer[y * WINDOW_WIDTH + x] = pink ? 0xF0A0A0 : 0xFFFFFF;
-    }
-  }
-#endif
-
+  std::array<uint8_t, 2048> drawFlag;
   mfb_update_state state;
   do {
-    // TODO: add some fancy rendering to the buffer of size 800 * 600
+    for (int i = 0; i < 50; ++i)
+    {
+      chip8.EmulateCycle();
+    }
+    chip8.UpdateTimer();
+    if (chip8.ShouldUpdateDraw(drawFlag))
+    {
+      for (int y = 0; y < WINDOW_HEIGHT; ++y)
+      {
+        for (int x = 0; x < WINDOW_WIDTH; ++x)
+        {
+          auto pixelX = x / PIXEL_SIZE;
+          auto pixelY = y / PIXEL_SIZE;
+          buffer[y * WINDOW_WIDTH + x] = drawFlag[y * WINDOW_WIDTH + x];
+        }
+      }
+    }
 
     state = mfb_update(window, buffer);
 
