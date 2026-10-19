@@ -217,6 +217,8 @@ void Chip8::ExecuteOp0(const uint16_t& opcode)
     {
       // 00E0 - CLS
       fmt::println("clear display");
+      drawFlag.fill(0);
+      updateDraw = true;
       break;
     }
     case 0x00EE:
@@ -481,9 +483,9 @@ void Chip8::ExecuteOpD(const uint16_t& opcode)
       if (shouldDraw)
       {
         // TODO: マジックナンバーを定数に
-        auto drawX = (x + offsetX) % 64;
-        auto drawY = (y + offsetY) % 32;
-        auto drawIndex = drawY + drawX * 64;
+        auto drawX = (state.reg_v[x] + offsetX) % 64;
+        auto drawY = (state.reg_v[y] + offsetY) % 32;
+        auto drawIndex = drawY * 64 + drawX;
         collision = collision || drawFlag[drawIndex]; // すでに描画されている
         drawFlag[drawIndex] ^= 1; // XOR
         updateDraw = true;
