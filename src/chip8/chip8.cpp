@@ -539,7 +539,7 @@ void Chip8::ExecuteOpF(const uint16_t& opcode)
     {
       // Fx07 - LD Vx, DT
       // VxにDelay timerの値dtをセットする。
-      state.delay_timer = state.reg_v[x];
+      state.reg_v[x] = state.delay_timer;
       break;
     }
     case 0x000A:
