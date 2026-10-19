@@ -485,7 +485,7 @@ void Chip8::ExecuteOpD(const uint16_t& opcode)
         auto drawY = (y + offsetY) % 32;
         auto drawIndex = drawY + drawX * 64;
         collision = collision || drawFlag[drawIndex]; // すでに描画されている
-        drawFlag[drawY + drawX * 64] ^= 1; // XOR
+        drawFlag[drawIndex] ^= 1; // XOR
         updateDraw = true;
       }
     }
