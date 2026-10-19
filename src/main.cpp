@@ -42,7 +42,7 @@ int main() {
         {
           auto pixelX = x / PIXEL_SIZE;
           auto pixelY = y / PIXEL_SIZE;
-          buffer[y * WINDOW_WIDTH + x] = drawFlag[y * WINDOW_WIDTH + x];
+          buffer[y * WINDOW_WIDTH + x] = drawFlag[pixelY * WIDTH + pixelX] ? 0xFF00 : 0x0;
         }
       }
     }

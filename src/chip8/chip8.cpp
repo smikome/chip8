@@ -178,6 +178,11 @@ void Chip8::EmulateCycle()
 {
   uint16_t opcode = 0;
   state.FetchCode(opcode);
+  fmt::println("pc: {:x}, opcode: {:x}, delay_timer: {}, sound_timer: {}",
+    state.reg_pc,
+    opcode,
+    state.delay_timer,
+    state.sound_timer);
   state.IncrementPC();
   ExecuteOpCode(opcode);
 }
@@ -200,7 +205,6 @@ bool Chip8::ShouldUpdateDraw(std::array<uint8_t, 2048>& outDrawFlag)
 void Chip8::ExecuteOpCode(const uint16_t& opcode)
 {
   auto nibble = (opcode & 0xF000) >> 12;
-  fmt::println("nibble: {}, opFuncTable.size(): {}", nibble, opFuncTable.size());
   assert(nibble < opFuncTable.size() && "nibble out of range");
   (this->*opFuncTable[nibble])(opcode);
 }
