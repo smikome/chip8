@@ -197,6 +197,7 @@ bool Chip8::ShouldUpdateDraw(std::array<uint8_t, 2048>& outDrawFlag)
   if (updateDraw)
   {
     outDrawFlag = drawFlag;
+    updateDraw = false;
     return true;
   }
   return false;
@@ -407,7 +408,7 @@ void Chip8::ExecuteOp8(const uint16_t& opcode)
       // Vxの最上位ビットが1の場合Vfに1、それ以外の場合は0をセットする。
       // Vxに2をかけた(または左ビットシフト)値をセットする。
       // NOTE: x == fの場合はフラグでなく結果の値を優先している（どっちを優先すべきなのかわからん）
-      state.reg_v[0xF] = state.reg_v[x] & 0x80;
+      state.reg_v[0xF] = (state.reg_v[x] & 0x80) ? 1 : 0;
       state.reg_v[x] <<= 1;
       break;
     }
