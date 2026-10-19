@@ -261,7 +261,7 @@ void Chip8::ExecuteOp3(const uint16_t& opcode)
   // 3xkk - SE Vx, byte
   // Vx = kkの場合、次の命令をスキップする。
   // インタプリタはレジスタVxとkkを比較し、二つが等しいならプログラムカウンタを2進める。
-  auto x = opcode & 0x0F00 >> 8;
+  auto x = (opcode & 0x0F00) >> 8;
   auto kk = opcode & 0x00FF;
   if (state.reg_v[x] == kk)
   {
@@ -274,7 +274,7 @@ void Chip8::ExecuteOp4(const uint16_t& opcode)
   // 4xkk - SNE Vx, byte
   // Vx != kkの場合、次の命令をスキップする。
   // インタプリタはレジスタVxとkkを比較し、二つが異なるならプログラムカウンタを2進める。
-  auto x = opcode & 0x0F00 >> 8;
+  auto x = (opcode & 0x0F00) >> 8;
   auto kk = opcode & 0x00FF;
   if (state.reg_v[x] != kk)
   {
@@ -287,8 +287,8 @@ void Chip8::ExecuteOp5(const uint16_t& opcode)
   // 5xy0 - SE Vx, Vy
   // Vx = Vyの場合、次の命令をスキップする。
   // インタプリタはレジスタVxとVyを比較し、二つが等しいならプログラムカウンタを2進める。
-  auto x = opcode & 0x0F00 >> 8;
-  auto y = opcode & 0x00F0 >> 4;
+  auto x = (opcode & 0x0F00) >> 8;
+  auto y = (opcode & 0x00F0) >> 4;
   if (state.reg_v[x] == state.reg_v[y])
   {
     state.IncrementPC();
@@ -300,7 +300,7 @@ void Chip8::ExecuteOp6(const uint16_t& opcode)
   // 6xkk - LD Vx, byte
   // Vxにkkをセットする。
   // インタプリタはレジスタVxにkkの値をセットする。
-  auto x = opcode & 0x0F00 >> 8;
+  auto x = (opcode & 0x0F00) >> 8;
   auto kk = opcode & 0x00FF;
   state.reg_v[x] = kk;
 }
@@ -310,7 +310,7 @@ void Chip8::ExecuteOp7(const uint16_t& opcode)
   // 7xkk - ADD Vx, byte
   // VxにVx + kkをセットする。
   // インタプリタはレジスタVxにkkの値を加算する。
-  auto x = opcode & 0x0F00 >> 8;
+  auto x = (opcode & 0x0F00) >> 8;
   auto kk = opcode & 0x00FF;
   state.reg_v[x] += kk;
 }
@@ -318,8 +318,8 @@ void Chip8::ExecuteOp7(const uint16_t& opcode)
 void Chip8::ExecuteOp8(const uint16_t& opcode)
 {
   auto nibble = opcode & 0x000F;
-  auto x = opcode & 0x0F00 >> 8;
-  auto y = opcode & 0x00F0 >> 4;
+  auto x = (opcode & 0x0F00) >> 8;
+  auto y = (opcode & 0x00F0) >> 4;
   switch (nibble)
   {
     case 0x0000:
@@ -422,8 +422,8 @@ void Chip8::ExecuteOp9(const uint16_t& opcode)
   // 9xy0 - SNE Vx, Vy
   // Vx != Vyの場合、次の命令をスキップする。
   // つまり、プログラムカウンタを2インクリメントする。
-  auto x = opcode & 0x0F00 >> 8;
-  auto y = opcode & 0x00F0 >> 4;
+  auto x = (opcode & 0x0F00) >> 8;
+  auto y = (opcode & 0x00F0) >> 4;
   if (state.reg_v[x] != state.reg_v[y])
   {
     state.IncrementPC();
@@ -450,7 +450,7 @@ void Chip8::ExecuteOpC(const uint16_t& opcode)
 {
   // Cxkk - RND Vx, byte
   // Vxに0~255の乱数 AND kkをセットする。AND演算については8xy2を参照。
-  auto x = opcode & 0x0F00 >> 8;
+  auto x = (opcode & 0x0F00) >> 8;
   auto kk = opcode & 0x00FF;
   std::uniform_int_distribution<int> distribution(0x0, 0xFF);
   auto rand = distribution(randEngine);
@@ -468,8 +468,8 @@ void Chip8::ExecuteOpD(const uint16_t& opcode)
   // スプライトの一部が画面からはみ出る場合は、逆方向に折り返す。
   // XORについては8xy3に詳しい。
   // また、ディプレイの仕様に関しては2.4 Displayを参照のこと。
-  auto x = opcode & 0x0F00 >> 8;
-  auto y = opcode & 0x00F0 >> 4;
+  auto x = (opcode & 0x0F00) >> 8;
+  auto y = (opcode & 0x00F0) >> 4;
   auto n = opcode & 0x000F;
   bool collision = false;
   for (int offsetY = 0; offsetY < n; ++offsetY)
