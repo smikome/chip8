@@ -75,8 +75,8 @@ private:
 
   bool updateDraw = false;
   // 64 * 32のディスプレイ描画フラグ, drawFlag[y + x * 64]で取得
-  std::array<uint8_t, 2048> drawFlag{};
-  std::array<uint8_t, 16> key{};
+  std::array<uint8_t, 2048> drawFlag;
+  std::array<uint8_t, 16> key;
 
   std::mt19937 randEngine;
 };

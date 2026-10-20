@@ -21,15 +21,20 @@ int main() {
   }
   // 60Hz
   mfb_set_target_fps(60);
-  uint32_t *buffer = (uint32_t*)malloc(WINDOW_WIDTH * WINDOW_HEIGHT * 4);
+  uint32_t *buffer = (uint32_t*)malloc(WINDOW_WIDTH * WINDOW_HEIGHT * sizeof(uint32_t));
+  memset(buffer, 0, WINDOW_WIDTH * WINDOW_HEIGHT * sizeof(uint32_t));
 
   auto chip8 = Chip8();
-  chip8.Load("roms/PONG");
+  if (!chip8.Load("roms/TANK")) {
+    fmt::println("Failed to load ROM.");
+    free(buffer);
+    return -1;
+  }
 
   std::array<uint8_t, 2048> drawFlag;
   mfb_update_state state;
   do {
-    for (int i = 0; i < 50; ++i)
+    for (int i = 0; i < 10; ++i)
     {
       chip8.EmulateCycle();
     }

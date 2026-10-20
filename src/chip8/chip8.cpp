@@ -83,6 +83,8 @@ Chip8State::Chip8State()
   {
     stack[i] = 0;
   }
+  prevTime = std::chrono::steady_clock::now();
+  elapsedTime = std::chrono::microseconds::zero();
 }
 
 Chip8State::~Chip8State()
@@ -146,6 +148,10 @@ Chip8::Chip8()
 
   std::random_device seed_gen;
   randEngine = std::mt19937(seed_gen());
+
+  drawFlag.fill(0);
+  updateDraw = false;
+  key.fill(0);
 }
 
 Chip8::~Chip8()
@@ -155,6 +161,10 @@ Chip8::~Chip8()
 bool Chip8::Load(const char* filePath)
 {
   state = Chip8State();
+
+  drawFlag.fill(0);
+  updateDraw = false;
+  key.fill(0);
 
   // ROMロード処理
   auto tempBuffer = LoadFile(filePath);
