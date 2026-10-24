@@ -44,6 +44,7 @@ public:
   void EmulateCycle();
   void UpdateTimer();
   bool ShouldUpdateDraw(std::array<uint8_t, 2048>& outDrawFlag);
+  std::array<uint8_t, 16>& GetKey();
 
 private:
   void ExecuteOpCode(const uint16_t& opcode);

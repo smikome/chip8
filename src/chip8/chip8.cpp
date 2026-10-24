@@ -213,6 +213,11 @@ bool Chip8::ShouldUpdateDraw(std::array<uint8_t, 2048>& outDrawFlag)
   return false;
 }
 
+std::array<uint8_t, 16>& Chip8::GetKey()
+{
+  return key;
+}
+
 void Chip8::ExecuteOpCode(const uint16_t& opcode)
 {
   auto nibble = (opcode & 0xF000) >> 12;
