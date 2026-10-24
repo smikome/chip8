@@ -12,11 +12,15 @@ find_package(minifb CONFIG REQUIRED)
 # ヘッダーオンリーライブラリ
 find_path(MINIAUDIO_INCLUDE_DIR NAMES miniaudio.h REQUIRED)
 
-add_executable(chip8 src/main.cpp)
+file(GLOB_RECURSE SOURCES CONFIGURE_DEPENDS src/*.cpp)
+add_executable(chip8 ${SOURCES})
 
 target_link_libraries(chip8 PRIVATE
     fmt::fmt
     minifb::minifb
 )
 
-target_include_directories(chip8 PRIVATE ${MINIAUDIO_INCLUDE_DIR})
+target_include_directories(chip8 PRIVATE
+    ${MINIAUDIO_INCLUDE_DIR}
+    src
+)
