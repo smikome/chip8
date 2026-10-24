@@ -12,6 +12,7 @@ cd vcpkg
 
 ## Build
 ```
+vcpkg install
 cmake --preset default
 cmake --build build
 ```
