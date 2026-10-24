@@ -7,8 +7,19 @@ Chip-8 emulator written in C++
 - Visual Studio 2022 (Windows) / Xcode Command Line Tools (macOS)
 
 # Build
-```
+```bash
 vcpkg install
 cmake --preset default
 cmake --build build
+```
+
+# Run
+## Windows
+```bash
+.\build\Release\chip8.exe
+```
+
+## macOS
+```bash
+./build/chip8
 ```
