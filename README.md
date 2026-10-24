@@ -3,6 +3,15 @@ Chip-8 emulator written in C++
 
 # Setup
 ## Install vcpkg (if not already installed).
+### Windows
+```
+cd ~
+git clone https://github.com/microsoft/vcpkg
+cd vcpkg
+./bootstrap-vcpkg.bat
+```
+
+### MacOS
 ```
 cd ~
 git clone https://github.com/microsoft/vcpkg
