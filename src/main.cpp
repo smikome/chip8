@@ -1,6 +1,8 @@
+#define MINIAUDIO_IMPLEMENTATION
+#include "miniaudio.h"
+
 #include <fmt/core.h>
-#include <stdlib.h>
-#include <cstdint>
+#include <cstring>
 
 #include "MiniFB.h"
 #include "chip8/chip8.h"
@@ -10,6 +12,38 @@ static constexpr uint32_t HEIGHT = 32;
 static constexpr uint32_t PIXEL_SIZE = 16;
 static constexpr uint32_t WINDOW_WIDTH = (WIDTH * PIXEL_SIZE);
 static constexpr uint32_t WINDOW_HEIGHT = (HEIGHT * PIXEL_SIZE);
+
+struct AudioContext {
+    bool buzzerOn = false;
+    float phase = 0.0f;
+};
+
+static void audio_callback(ma_device* pDevice, void* pOutput, const void* pInput, ma_uint32 frameCount)
+{
+    (void)pInput;
+    AudioContext* pCtx = static_cast<AudioContext*>(pDevice->pUserData);
+    float* pOutputF32 = static_cast<float*>(pOutput);
+
+    if (!pCtx->buzzerOn) {
+        std::memset(pOutput, 0, frameCount * sizeof(float) * 2);
+        return;
+    }
+
+    const float frequency = 440.0f;
+    const float sampleRate = static_cast<float>(pDevice->sampleRate);
+    const float amplitude = 0.2f;
+
+    for (ma_uint32 i = 0; i < frameCount; ++i)
+    {
+        // 矩形波
+        float sample = (pCtx->phase < 0.5f) ? amplitude : -amplitude;
+        pOutputF32[i * 2 + 0] = sample; // L
+        pOutputF32[i * 2 + 1] = sample; // R
+
+        pCtx->phase += frequency / sampleRate;
+        if (pCtx->phase >= 1.0f) pCtx->phase -= 1.0f;
+    }
+}
 
 class Chip8Input {
 public:
@@ -44,16 +78,17 @@ public:
             break;
     }
 
-    auto& refKey = chip8->GetKey();
-
-    if (chip8Key >= 0 && chip8 != nullptr)
+    if (chip8 == nullptr || chip8Key < 0)
     {
-        refKey[chip8Key] = isPressed;
+        return;
     }
+
+    auto& refKey = chip8->GetKey();
+    refKey[chip8Key] = isPressed;
   }
 };
 
-int main(int argc ,char* argv[]) {
+int main(int argc, char* argv[]) {
   if (argc < 2)
   {
     fmt::println("Usage: {} <rom_file>", argv[0]);
@@ -65,10 +100,10 @@ int main(int argc ,char* argv[]) {
   {
     return 0;
   }
-  // 60Hz
+
   mfb_set_target_fps(60);
-  uint32_t *buffer = (uint32_t*)malloc(WINDOW_WIDTH * WINDOW_HEIGHT * sizeof(uint32_t));
-  memset(buffer, 0, WINDOW_WIDTH * WINDOW_HEIGHT * sizeof(uint32_t));
+
+  uint32_t *buffer = static_cast<uint32_t*>(calloc(WINDOW_WIDTH * WINDOW_HEIGHT, sizeof(uint32_t)));
 
   auto chip8 = Chip8();
   if (!chip8.Load(argv[1])) {
@@ -76,9 +111,30 @@ int main(int argc ,char* argv[]) {
     free(buffer);
     return -1;
   }
+
   Chip8Input input;
   input.chip8 = &chip8;
   mfb_set_keyboard_callback(window, &input, &Chip8Input::keyboard);
+
+  // オーディオ初期化
+  AudioContext audioCtx;
+  ma_device_config config = ma_device_config_init(ma_device_type_playback);
+  config.playback.format = ma_format_f32;
+  config.playback.channels = 2;
+  config.sampleRate = 0; // デバイスのネイティブレートを使用
+  config.dataCallback = audio_callback;
+  config.pUserData = &audioCtx;
+
+  ma_device audioDevice;
+  ma_result result = ma_device_init(NULL, &config, &audioDevice);
+  if (result == MA_SUCCESS)
+  {
+    ma_device_start(&audioDevice);
+  }
+  else
+  {
+    fmt::println("Warning: Failed to initialize audio device.");
+  }
 
   std::array<uint8_t, 2048> drawFlag;
   mfb_update_state state;
@@ -88,6 +144,10 @@ int main(int argc ,char* argv[]) {
       chip8.EmulateCycle();
     }
     chip8.UpdateTimer();
+
+    // ブザー状態を反映
+    audioCtx.buzzerOn = chip8.ShouldSoundBuzzer();
+
     if (chip8.ShouldUpdateDraw(drawFlag))
     {
       for (int y = 0; y < WINDOW_HEIGHT; ++y)
@@ -109,10 +169,15 @@ int main(int argc ,char* argv[]) {
     }
   } while(mfb_wait_sync(window));
 
+  if (result == MA_SUCCESS)
+  {
+    ma_device_stop(&audioDevice);
+    ma_device_uninit(&audioDevice);
+  }
+
   free(buffer);
   buffer = NULL;
   window = NULL;
-
 
   return 0;
 }

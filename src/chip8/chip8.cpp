@@ -213,6 +213,11 @@ bool Chip8::ShouldUpdateDraw(std::array<uint8_t, 2048>& outDrawFlag)
   return false;
 }
 
+bool Chip8::ShouldSoundBuzzer() const
+{
+  return state.sound_timer > 0;
+}
+
 std::array<uint8_t, 16>& Chip8::GetKey()
 {
   return key;
